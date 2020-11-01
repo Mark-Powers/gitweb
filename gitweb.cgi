@@ -78,6 +78,7 @@ sub evaluate_uri {
 	our $home_link = $my_uri || "/";
 }
 
+my %lang_counts = ();
 our $default_owner = "";
 
 # core git executable to use
@@ -263,6 +264,18 @@ our %known_snapshot_format_aliases = (
 our %avatar_size = (
 	'default' => 16,
 	'double'  => 32
+);
+
+our %language_types = (
+	'c' => 'c',
+	'h' => 'c',
+	'java' => 'java',
+	'py' => 'python',
+	'js' => 'javascript',
+	'json' => 'json',
+	'html' => 'html',
+	'css' => 'css',
+	'sh' => 'shell'
 );
 
 # Used to set the maximum load that we will still respond to gitweb queries.
@@ -4693,6 +4706,7 @@ sub git_print_tree_entry {
 	my %base_key = ();
 	$base_key{'hash_base'} = $hash_base if defined $hash_base;
 
+
 	# The format of a table row is: mode list link.  Where mode is
 	# the mode of the entry, list is the name of the entry, an href,
 	# and link is the action links of the entry.
@@ -4706,6 +4720,12 @@ sub git_print_tree_entry {
 			$cgi->a({-href => href(action=>"blob", hash=>$t->{'hash'},
 			                       file_name=>"$basedir$t->{'name'}", %base_key),
 			        -class => "list"}, esc_path($t->{'name'}));
+
+		my $ext = $t->{'name'} =~ s/.*\.//r;
+		if(exists $language_types{$ext} and exists $t->{'size'}){
+			$lang_counts{$ext}+=$t->{'size'};
+		}
+
 		if (S_ISLNK(oct $t->{'mode'})) {
 			my $link_target = git_get_link_target($t->{'hash'});
 			if ($link_target) {
@@ -4755,6 +4775,7 @@ sub git_print_tree_entry {
 		                             file_name=>"$basedir$t->{'name'}",
 		                             %base_key)},
 		              "tree");
+
 		if (defined $hash_base) {
 			print " | " .
 			      $cgi->a({-href => href(action=>"history", hash_base=>$hash_base,
@@ -5684,7 +5705,7 @@ sub format_sort_th {
 	if ($order eq $name) {
 		$sort_th .= "<th>$header</th>\n";
 	} else {
-		$sort_th .= "<th>" .
+		$sort_th .= "<th class=\"".$name."\">" .
 		            $cgi->a({-href => href(-replay=>1, order=>$name),
 		                     -class => "header"}, $header) .
 		            "</th>\n";
@@ -5727,7 +5748,7 @@ sub git_project_list_rows {
 		                        -class => "list"},
 		                       esc_html_match_hl($pr->{'path'}, $search_regexp)) .
 		      "</td>\n" .
-		      "<td>" . $cgi->a({-href => href(project=>$pr->{'path'}, action=>"summary"),
+		      "<td class=\"descr\">" . $cgi->a({-href => href(project=>$pr->{'path'}, action=>"summary"),
 		                        -class => "list",
 		                        -title => $pr->{'descr_long'}},
 		                        $search_regexp
@@ -5744,7 +5765,7 @@ sub git_project_list_rows {
 		}
 		print"<td class=\"link\">" .
 		      $cgi->a({-href => href(project=>$pr->{'path'}, action=>"summary")}, "summary")   . " | " .
-		      $cgi->a({-href => href(project=>$pr->{'path'}, action=>"shortlog")}, "shortlog") . " | " .
+		      #$cgi->a({-href => href(project=>$pr->{'path'}, action=>"shortlog")}, "shortlog") . " | " .
 		      $cgi->a({-href => href(project=>$pr->{'path'}, action=>"log")}, "log") . " | " .
 		      $cgi->a({-href => href(project=>$pr->{'path'}, action=>"tree")}, "tree") .
 		      ($pr->{'forks'} ? " | " . $cgi->a({-href => href(project=>$pr->{'path'}, action=>"forks")}, "forks") : '') .
@@ -6563,14 +6584,15 @@ sub git_summary {
 	git_print_page_nav('summary','', $head);
 	my $proj_head_hash = git_get_head_hash($project);
 
-	print "<div class=\"title\">&nbsp;</div>\n";
+	#print "<div class=\"title\">&nbsp;</div>\n";
 	print "<div class=\"repo_header\">";
 	# --------------------------- README	
-	print "<div class=\"readme\">";
 	if (!$prevent_xss) { 
+
     	    my $file_name = "README.md";
 	    my $readme_blob_hash = git_get_hash_by_path($proj_head_hash, "README.md", "blob");
 	    if ($readme_blob_hash) { # if README.md exists                  
+	    	print "<div class=\"readme\">";
 		    #print "<div class=\"header\">readme</div>\n";
 		my $cmd_markdownify = $GIT . " " . git_cmd() . " cat-file blob " . $readme_blob_hash . " | pandoc |";
 		open FOO, $cmd_markdownify or die_error(500, "Open git-cat-file blob '$hash' failed");
@@ -6578,9 +6600,9 @@ sub git_summary {
 		    print $_;
 		}
 		close(FOO);
+		print "</div>";
 	    }
 	}
-	print "</div>";
 	# --------------------------- END README
 	#------------------------ Projects list table
 	print "<table class=\"projects_list\">\n";
@@ -7221,6 +7243,8 @@ sub git_tree_only {
 
 		print "</tr>\n";
 	}
+
+	%lang_counts = ();
 	foreach my $line (@entries) {
 		my %t = parse_ls_tree_line($line, -z => 1, -l => $show_sizes);
 
@@ -7235,8 +7259,29 @@ sub git_tree_only {
 
 		print "</tr>\n";
 	}
-	print "</table>\n" .
-	      "</div>";
+	print "</table>\n";
+	print_lang_counts();
+	print "</div>";
+
+}
+
+sub print_lang_counts {
+
+	my $total = 0;
+	for (keys %lang_counts){
+		$total += $lang_counts{$_};
+	}
+	if($total == 0) {
+		return;
+	}
+	print "<div class=\"portion\"><span>Found: </span>";
+	for (keys %lang_counts){
+		my $percent = %lang_counts{$_}/$total * 100;
+		my $type = $language_types{$_};
+		printf("<span>%d%% %s</span> ", $percent, $type);
+	}
+	print "</div>\n";
+
 }
 
 sub git_tree {
@@ -7330,6 +7375,7 @@ sub git_tree {
 
 		print "</tr>\n";
 	}
+	%lang_counts = ();
 	foreach my $line (@entries) {
 		my %t = parse_ls_tree_line($line, -z => 1, -l => $show_sizes);
 
@@ -7344,8 +7390,9 @@ sub git_tree {
 
 		print "</tr>\n";
 	}
-	print "</table>\n" .
-	      "</div>";
+	print "</table>\n";
+	print_lang_counts();
+	print "</div>\n";
 	git_footer_html();
 }
 
