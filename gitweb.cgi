@@ -4243,6 +4243,7 @@ sub git_footer_html {
 		                             project_filter => $project_filter),
 		              -class => $feed_class}, "TXT") . "\n";
 	}
+	print "<div class=\"page_footer_text\"><span>Contact mark AT marks.kitchen for any help about the software here. Want to contribute? Send me a git patch. <a href=\"info.html\">(more info)</a></span><span style=\"margin-left: 2em\">Main site: <a href=\"https://marks.kitchen\">Mark's Kitchen</a></span></div>";
 	print "</div>\n"; # class="page_footer"
 
 	if (defined $t0 && gitweb_check_feature('timed')) {

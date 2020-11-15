@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Info</title>
+	<meta charset="UTF-8">
+	<style>
+		p {
+			max-width: 75ch;
+		}
+	</style>
+</head>
+<body>
+	<h1>What is this?</h1>	
+	<p>
+		Despite the popularity of centralized git services, git is actually a decentralized system. I'm sure many people already knew this, but I started learning programming after the rise of GitHub, and most things I read about git lived within that realm. When I learned git, I also learned how to use github, what forks and pull requests are, and I assumed they were some how intertwined.
+	</p>
+	<p>
+		I find it a bit off putting for a website that is based on open source, and is the defacto open source host to be completely closed source. Git hosting is a valuable service, and I think GitHub could still do great if it released its source code. Some other options similar to it are gitlab and sourcehut. They both have a centralized server, but that server is free software. 
+	</p>
+	<p>
+	When I decided that I wanted some transparency in my git host, I decided to run my own gitea server. Gitea is a web application that is very similar to GitHub. It works well and is familiar, but I find it to be a lot more than what I need. I don't need multiple users and organizations. So I set up my server just with the default git daemon (<a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Setting-Up-the-Server#">via these instructions</a>) and <a href="https://git-scm.com/docs/gitweb">gitweb</a> to share the repositories on the web. There are other web options, like stagit to generate the html statically, but I found gitweb nicer for my taste.
+	</p>
+	<p>
+		I modified gitweb to include the README content, have a custom theme, and some other minor tweaks. It was fairly straightforward. It gives me the personalization that I want, which is made possible by how simple the set up is. I don't need the advanced enterprise features for my personal projects.
+	</p>
+	<p>
+	One of those advanced features is that of contributing code. I am the only user who can push to the server, there are no forks. Instead, you can clone the repository and modify the code as normal. Then you can commit, and run <code>git format-patch master</code> to generate a patch file. You can do this for single or multiple commits. Email this file, and it can be used to add your changes to any copy of the repository, and its complete distributed. Some handy commands to view patches:
+<pre>
+git apply --stat my.patch # see the stats
+git apply --check my.patch # check for errors
+git am # apply the patch
+</pre>
+	</p>
+	<p>
+	I like this git workflow for a few reasons. It is completely distributed, I don't require any other server to be running in order to use it. Anyone interested in my projects doesn't have to go through some other service, just my server. It feels more human to me, issues and pull requests on GitHub just feel so formal for minor projects.  
+	</p>
+	<p>
+	Any git server that isn't GitHub will probably push some people away, especially one that requires a different workflow from the dominant model. This different way of doing this has merit, it's how Linux development works after all. It's shown me that git can be really cool, and there is so much out there beyond the mainstream.
+	</p>
+	<p><a href="https://git.marks.kitchen">back to git.marks.kitchen</a></p>
+</body>
+</html>
